@@ -1,79 +1,20 @@
-# rn-clipped-focus-search-disabled-view
+# Android: keyboard Tab stays put at a disabled `Pressable` that a `removeClippedSubviews` ScrollView has clipped
 
-![Build](https://github.com/YevheniiKotyrlo/rn-clipped-focus-search-disabled-view/workflows/Pre%20Merge%20Checks/badge.svg)
+React Native 0.90.0-nightly-20261119-f4f8b6a1f, new architecture, from the [React Native reproducer template](https://github.com/react-native-community/reproducer-react-native). `enableCustomFocusSearchOnClippedElementsAndroid` is at its default, `true`, which the app shows at the top.
 
-This is your new React Native Reproducer project.
+`ReproducerApp/App.tsx` renders a 300-point `ScrollView` holding twenty `Pressable` rows, "row 1" to "row 20", each in a `View` of its own; row 12 is `disabled` and labelled "row 12, disabled". A `Pressable` "after the list" sits below the `ScrollView`. Opened with no URL, or with `rnrepro://clipped`, the `ScrollView` sets `removeClippedSubviews`; opened with `rnrepro://unclipped` it does not.
 
-# Reproducer TODO list
+With a hardware keyboard, Tab should go from row 11 to row 13, passing over the disabled row, whether or not `removeClippedSubviews` is set.
 
-- [x] 1. Create a new reproducer project.
-- [ ] 2. Git clone your repository locally.
-- [ ] 3. Edit the project to reproduce the failure you're seeing.
-- [ ] 4. Push your changes, so that Github Actions can run the CI.
-- [ ] 5. Make sure the repository is public and share the link with the issue you reported.
+## Steps
 
-# How to use this Reproducer
+By hand, on an Android device with a hardware keyboard:
 
-This project has been created with `npx @react-native-community/cli init` and is a vanilla React Native app.
+1. Build and install the release APK: `cd ReproducerApp && yarn install && cd android && ./gradlew assembleRelease && adb install -r app/build/outputs/apk/release/app-release.apk`.
+2. Open the app and press Tab eleven times. A focused row gets a pink border, and the list scrolls to keep it in view: focus goes row 1, row 2, … row 11.
+3. Press Tab again, as often as you like: focus stays on row 11.
+4. For comparison, open the list without `removeClippedSubviews`: `adb shell am start -a android.intent.action.VIEW -d rnrepro://unclipped -n com.reproducerapp/.MainActivity`, and press Tab twelve times: focus goes from row 11 to row 13.
 
-> [!IMPORTANT]  
-> Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/set-up-your-environment) so that you have a working environment locally.
+Without a keyboard: `adb shell input keyevent KEYCODE_TAB`.
 
-## Step 1: Start the Metro Server
-
-First, you will need to start **Metro**, the JavaScript _bundler_ that ships _with_ React Native.
-
-To start Metro, run the following command from the _root_ of your React Native project:
-
-```bash
-# using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Start your Application
-
-Let Metro Bundler run in its _own_ terminal. Open a _new_ terminal from the _root_ of your React Native project. Run the following command to start your _Android_ or _iOS_ app:
-
-### For Android
-
-```bash
-# using npm
-npm run android
-
-# OR using Yarn
-yarn android
-```
-
-### For iOS
-
-First, make sure you install dependencies with:
-
-```bash
-cd ios && bundle install && bundle exec pod install
-```
-
-Then you can run the iOS app with:
-
-```bash
-# using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up _correctly_, you should see your new app running in your _Android Emulator_ or _iOS Simulator_ shortly provided you have set up your emulator/simulator correctly.
-
-This is one way to run your app — you can also run it directly from within Android Studio and Xcode respectively.
-
-## Step 3: Modifying your App
-
-Now that you have successfully run the app, let's modify it.
-
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
-
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
+Scripted: `./reproduce.sh`, with one Android device attached, builds and installs the app, then for the list without `removeClippedSubviews` and the list with it starts the app afresh, presses Tab fifteen times and reads which view holds focus after each press from `uiautomator dump`. It exits 1 while Tab stays on row 11 in the list with `removeClippedSubviews` and goes from row 11 to row 13 in the one without, 0 once it goes from row 11 to row 13 in both, and 2 when the list without `removeClippedSubviews` does not go from row 11 to row 13, a walk never reaches row 11, the disabled row or another view takes focus, or a step fails.
